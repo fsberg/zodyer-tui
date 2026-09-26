@@ -3,6 +3,33 @@
 Terminalklient för YouTube Music. Python + Textual för gränssnittet,
 `ytmusicapi` för sökning, mpv för uppspelning via JSON-IPC.
 
+## Installation
+
+Windows, i PowerShell:
+
+```powershell
+winget install --id Python.Python.3.12 --exact
+winget install --id Git.Git --exact
+winget install --id shinchiro.mpv --exact
+winget install --id yt-dlp.yt-dlp --exact
+py -3 -m pip install --user pipx
+py -3 -m pipx ensurepath
+```
+
+Stäng terminalen och öppna en ny – PATH uppdateras inte i fönster som redan
+är öppna. Sedan:
+
+```powershell
+pipx install git+https://github.com/fsberg/zodyer-tui.git
+zodyer
+```
+
+Uppdatera med `pipx upgrade zodyer`. Repot är privat: du behöver vara
+inbjuden och kommer att få logga in på GitHub första gången.
+
+Resten av det här dokumentet gäller dig som har koden utcheckad och vill
+köra eller utveckla från mappen.
+
 ## Förutsättningar
 
 ```powershell
@@ -10,8 +37,9 @@ winget install --id shinchiro.mpv --exact
 winget install --id yt-dlp.yt-dlp --exact
 ```
 
-Både `mpv` och `yt-dlp` måste ligga i PATH. mpv:s ytdl-hook hittar
-`yt-dlp` automatiskt – ingen konfiguration behövs.
+`yt-dlp` måste ligga i PATH – mpv:s ytdl-hook hittar den därifrån och tar
+ingen sökväg. `mpv` behöver inte: zodyer letar själv i Program Files och
+winget-katalogerna om den inte finns i PATH.
 
 ## Snabbstart
 
