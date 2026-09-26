@@ -103,6 +103,8 @@ class Player:
         self._terminated = False
         self._repeat = "off"
         self._shuffled = False
+        #: Spåret en återställd kö fortsätter från när man trycker spela.
+        self._resume_index = 0
         self._level: float | None = None
         self._level_enabled = level_meter
         self._level_failures = 0
@@ -183,11 +185,14 @@ class Player:
 
         Använder "append" i stället för "append-play": mpv får spellistan men
         förblir idle, så programmet inte börjar låta av sig självt vid start.
+        ``index`` är spåret som spelade när kön sparades; toggle_pause
+        fortsätter därifrån.
         """
         if not tracks:
             return
         with self._lock:
             self._queue = list(tracks)
+            self._resume_index = index if 0 <= index < len(tracks) else 0
             self._status = replace(
                 self._status, track=None, queue_index=-1, idle=True, stale=False
             )
@@ -335,8 +340,9 @@ class Player:
         with self._lock:
             idle = self._status.idle and self._status.queue_index < 0
             har_ko = bool(self._queue)
+            resume = self._resume_index if self._resume_index < len(self._queue) else 0
         if idle and har_ko:
-            self.play_index(0)
+            self.play_index(resume)
             return
 
         with self._lock:

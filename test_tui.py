@@ -95,6 +95,7 @@ class FakePlayer:
         self.restore_calls = getattr(self, "restore_calls", 0) + 1
         self._queue = list(tracks)
         self.index = -1          # återställd kö spelar inte av sig själv
+        self.resume = index if 0 <= index < len(tracks) else 0
 
     def play_index(self, index):
         if 0 <= index < len(self._queue):
@@ -114,7 +115,7 @@ class FakePlayer:
 
     def toggle_pause(self):
         if self.index < 0 and self._queue:
-            self.play_index(0)
+            self.play_index(getattr(self, "resume", 0))
             return
         self.paused = not self.paused
 

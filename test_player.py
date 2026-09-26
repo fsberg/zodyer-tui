@@ -393,3 +393,22 @@ def test_mataren_ger_upp_efter_upprepade_fel(player):
     mpv.command = failing
     assert wait_for(lambda: p._level_enabled is False, timeout=6.0)
     assert p.audio_level() is None
+
+
+# ---------- Återställd kö ----------
+
+
+def test_aterstalld_ko_fortsatter_fran_sparat_spar(player):
+    p, mpv = player
+    p.restore([T1, T2, T3], index=1)
+    assert p.status().queue_index == -1          # spelar inte av sig själv
+    p.toggle_pause()
+    assert p.status().track == T2
+    assert wait_for(lambda: ("playlist-play-index", 1) in mpv.commands)
+
+
+def test_aterstalld_ko_utan_index_borjar_fran_forsta(player):
+    p, mpv = player
+    p.restore([T1, T2], index=-1)
+    p.toggle_pause()
+    assert p.status().track == T1
