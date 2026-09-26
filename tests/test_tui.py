@@ -1,6 +1,6 @@
 """Headless-verifiering av TUI:t med stubbad Player och YTMusicSource.
 
-Kör: python -m pytest test_tui.py -v
+Kör: python -m pytest tests/test_tui.py -v
 Ingen mpv, inget nätverk. Syftet är att pröva påståendena i briefen,
 inte att ersätta en skarp körning.
 """

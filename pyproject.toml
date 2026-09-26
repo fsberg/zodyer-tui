@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zodyer"
+description = "Terminalklient för YouTube Music"
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["version", "dependencies"]
+
+[project.scripts]
+zodyer = "zodyer.__main__:main"
+
+[tool.setuptools]
+packages = ["zodyer"]
+
+[tool.setuptools.package-data]
+# Textual läser stilmallen från disk bredvid app.py.
+zodyer = ["app.tcss"]
+
+[tool.setuptools.dynamic]
+version = { attr = "zodyer.__version__" }
+# requirements.txt är den enda källan: start.py installerar från den och
+# pipx/pip läser samma fil härifrån. Versionerna står bara på ett ställe.
+dependencies = { file = ["requirements.txt"] }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# Testerna importerar både paketet och start.py från projektroten.
+pythonpath = ["."]

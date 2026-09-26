@@ -72,6 +72,24 @@ python -m zodyer
 Kör paketet med `python -m zodyer`, inte `python zodyer\__main__.py` – modulerna
 använder relativa importer och det senare ger `ImportError`.
 
+### Som kommando med pipx
+
+För att kunna skriva `zodyer` i vilken terminal som helst, utan att gå till
+mappen eller aktivera någon venv:
+
+```powershell
+winget install --id Python.Python.3.12 --exact   # om Python saknas
+py -3 -m pip install --user pipx
+py -3 -m pipx ensurepath                          # starta om terminalen efteråt
+pipx install .                                    # i zodyer-tui-mappen
+zodyer --volume 50
+```
+
+Efter ändringar i koden: `pipx install --force .`. Beroendena läses från
+`requirements.txt` via `pyproject.toml`, så versionerna står bara på ett
+ställe. `start.py` behövs inte med pipx, men mpv och yt-dlp måste fortfarande
+finnas – ange `--mpv` om mpv inte ligger i PATH.
+
 ## Tangenter
 
 Tryck `?` i programmet för hela listan — den genereras ur `BINDINGS` och kan
@@ -341,7 +359,8 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-180 tester, ingen mpv och inget nätverk krävs:
+Testerna ligger i `tests/`, inställningarna i `pyproject.toml`. Drygt 180
+tester, ingen mpv och inget nätverk krävs:
 
 | Fil | Täcker |
 |-----|--------|
@@ -356,7 +375,7 @@ python -m pytest -q
 ## Layoutfällor som kostat tid
 
 Alla tre hittades genom att faktiskt rendera TUI:t, inte genom kodläsning.
-Regressionstester finns i `test_eq.py`.
+Regressionstester finns i `tests/test_eq.py`.
 
 - **Footern trunkerar tyst.** Vid 80 kolumner ryms cirka sju bindningar.
   Tidigare försvann `q Avsluta` – och `Ctrl+C` avslutar inte en Textual-app
