@@ -94,6 +94,10 @@ class Player:
 
         self._lock = threading.RLock()
         self._queue: list[Track] = []
+        #: Ökas vid varje ändring av speglingen. Appen jämför den för att veta
+        #: när kön ska sparas och ritas om, även när ändringen sker i
+        #: kommandotråden (blandning, borttagning) långt efter knapptrycket.
+        self._queue_version = 0
         self._status = Status(volume=volume)
         self._errors: list[str] = []
 
@@ -131,6 +135,11 @@ class Player:
         with self._lock:
             return list(self._queue)
 
+    @property
+    def queue_version(self) -> int:
+        with self._lock:
+            return self._queue_version
+
     def status(self) -> Status:
         """Senast pollade status. Returnerar direkt, gör ingen IPC."""
         with self._lock:
@@ -157,6 +166,7 @@ class Player:
         """Ersätt kön och börja spela direkt."""
         with self._lock:
             self._queue = [track]
+            self._queue_version += 1
             # Optimistisk status: visa spåret medan yt-dlp resolvar, i stället
             # för att stå kvar på "Inget spelas" i ett par sekunder.
             self._status = replace(
@@ -174,6 +184,7 @@ class Player:
         """Lägg sist i kön. Startar uppspelning om inget spelas."""
         with self._lock:
             self._queue.append(track)
+            self._queue_version += 1
             if self._status.queue_index < 0:
                 self._status = replace(
                     self._status, track=track, queue_index=0, idle=False
@@ -192,6 +203,7 @@ class Player:
             return
         with self._lock:
             self._queue = list(tracks)
+            self._queue_version += 1
             self._resume_index = index if 0 <= index < len(tracks) else 0
             self._status = replace(
                 self._status, track=None, queue_index=-1, idle=True, stale=False
@@ -235,6 +247,7 @@ class Player:
             with self._lock:
                 if 0 <= index < len(self._queue):
                     self._queue.pop(index)
+                    self._queue_version += 1
                 aktuell = self._status.queue_index
                 if aktuell > index:
                     self._status = replace(self._status, queue_index=aktuell - 1)
@@ -313,11 +326,13 @@ class Player:
                     ny.append(kvar[url].pop(0))
             if len(ny) == len(self._queue):
                 self._queue = ny
+                self._queue_version += 1
 
     def clear_queue(self) -> None:
         """Töm kön men låt nuvarande spår spela klart."""
         with self._lock:
             index = self._status.queue_index
+            self._queue_version += 1
             if 0 <= index < len(self._queue):
                 self._queue = [self._queue[index]]
                 self._status = replace(self._status, queue_index=0)
@@ -330,6 +345,7 @@ class Player:
         with self._lock:
             volume = self._status.volume
             self._queue = []
+            self._queue_version += 1
             self._status = Status(volume=volume)
         self._submit(lambda: self._mpv.command("stop"))
 

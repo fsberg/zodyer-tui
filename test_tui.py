@@ -58,6 +58,11 @@ class FakePlayer:
     def queue(self):
         return list(self._queue)
 
+    @property
+    def queue_version(self):
+        # Räcker för appen, som bara jämför om värdet ändrats.
+        return hash(tuple(t.video_id for t in self._queue))
+
     def play_now(self, track):
         self._queue = [track]
         self.index = 0

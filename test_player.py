@@ -412,3 +412,15 @@ def test_aterstalld_ko_utan_index_borjar_fran_forsta(player):
     p.restore([T1, T2], index=-1)
     p.toggle_pause()
     assert p.status().track == T1
+
+
+def test_queue_version_okar_vid_varje_andring_av_speglingen(player):
+    p, mpv = player
+    v0 = p.queue_version
+    p.enqueue(T1)
+    p.enqueue(T2)
+    assert p.queue_version == v0 + 2
+    p.remove(0)
+    assert wait_for(lambda: p.queue_version == v0 + 3)
+    p.stop()
+    assert p.queue_version == v0 + 4

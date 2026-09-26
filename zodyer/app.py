@@ -113,11 +113,13 @@ class ZodyerApp(App):
         self.player = player
         self.source = source
         self.store = store or PlaylistStore()
-        self._queue_dirty = False
         self.results: list[Track] = []
         self.message = ""
         self._message_until = 0.0
-        self._last_index: int | None = None
+        #: (queue_version, queue_index) som kötabellen senast ritades för.
+        self._queue_drawn: tuple[int, int] | None = None
+        #: (queue_version, index) som senast skrevs till disk.
+        self._queue_saved: tuple[int, int] | None = None
         # Sätts här och inte i on_mount: on_resize kan komma först.
         self._results_layout: tuple | None = None
 
@@ -157,19 +159,33 @@ class ZodyerApp(App):
         if not tracks:
             return
         self.player.restore(tracks, index)
+        # Redan på disk – skriv inte tillbaka samma kö, och inte med index -1
+        # bara för att inget spelar än.
+        self._queue_saved = (self.player.queue_version, index)
         self._refresh_queue()
         self._set_message(f"Återställde {len(tracks)} spår. Tryck p för att spela.", 8.0)
 
-    def _mark_queue_dirty(self) -> None:
-        """Skriv inte vid varje tangenttryck – _tick tömmer flaggan."""
-        self._queue_dirty = True
+    def _sync_queue(self) -> None:
+        """Rita om och spara kön när spelaren säger att den ändrats.
 
-    def _flush_queue(self) -> None:
-        if not self._queue_dirty:
-            return
-        self._queue_dirty = False
-        status = self.player.status()
-        self.store.save_queue(self.player.queue, status.queue_index)
+        Styrs av Player.queue_version i stället för av knapptrycken:
+        blandning och borttagning sker i mpv-tråden, och en flagga satt vid
+        knapptrycket hann spara och rita den gamla ordningen.
+        """
+        version = self.player.queue_version
+        index = self.player.status().queue_index
+
+        if (version, index) != self._queue_drawn:
+            self._queue_drawn = (version, index)
+            self._refresh_queue()
+
+        saved_index = self._queue_saved[1] if self._queue_saved else -1
+        # -1 betyder "spelar inget just nu", inte "börja om" – behåll då det
+        # senast sparade spåret så att nästa start fortsätter därifrån.
+        spara_index = index if index >= 0 else saved_index
+        if (version, spara_index) != self._queue_saved:
+            self._queue_saved = (version, spara_index)
+            self.store.save_queue(self.player.queue, spara_index)
 
     def action_save_playlist(self) -> None:
         ko = self.player.queue
@@ -209,7 +225,6 @@ class ZodyerApp(App):
             for track in tracks:
                 self.player.enqueue(track)
             self._set_message(f"Köade {len(tracks)} spår från \"{namn}\".")
-        self._mark_queue_dirty()
         self._refresh_queue()
 
     # ---- Resultattabellens kolumner ----
@@ -347,21 +362,18 @@ class ZodyerApp(App):
         track = self._selected_track()
         if track:
             self.player.play_now(track)
-            self._mark_queue_dirty()
             self._refresh_queue()
 
     def action_enqueue(self) -> None:
         track = self._selected_track()
         if track:
             self.player.enqueue(track)
-            self._mark_queue_dirty()
             self._set_message(f"Köad: {track.title}")
             self._refresh_queue()
 
     def action_clear_queue(self) -> None:
         innan = len(self.player.queue)
         self.player.clear_queue()
-        self._mark_queue_dirty()
         kvar = len(self.player.queue)
         self._set_message(
             f"Tog bort {innan - kvar} spår, behöll det som spelas."
@@ -373,7 +385,6 @@ class ZodyerApp(App):
     def action_stop(self) -> None:
         antal = len(self.player.queue)
         self.player.stop()
-        self._mark_queue_dirty()
         self._refresh_queue()
         self._set_message(f"Rensade kön ({antal} spår)." if antal else "Kön var redan tom.")
 
@@ -433,10 +444,7 @@ class ZodyerApp(App):
             return
         titel = ko[rad].title
         self.player.remove(rad)
-        self._mark_queue_dirty()
         self._set_message(f"Tog bort {titel}.")
-        # Speglingen ändras i mpv-tråden; låt _tick rita om.
-        self._last_index = None
 
     def action_shuffle(self) -> None:
         if self.player.status().shuffled:
@@ -445,8 +453,6 @@ class ZodyerApp(App):
         else:
             self.player.shuffle()
             self._set_message("Blandade kön.")
-        self._mark_queue_dirty()
-        self._last_index = None
 
     def action_repeat(self) -> None:
         lage = self.player.cycle_repeat()
@@ -483,12 +489,8 @@ class ZodyerApp(App):
             return
         self._ensure_columns()
         self._fit_footer()
-        self._flush_queue()
-        status = self.player.status()
-        now.first(NowPlaying).render_status(status, self.message)
-        if status.queue_index != self._last_index:
-            self._last_index = status.queue_index
-            self._refresh_queue()
+        self._sync_queue()
+        now.first(NowPlaying).render_status(self.player.status(), self.message)
 
     def _eq_tick(self) -> None:
         # Intervallet kan trigga innan compose är klar och under nedstängning.
@@ -508,13 +510,18 @@ class ZodyerApp(App):
             return
         status = self.player.status()
         table = tables.first(DataTable)
+        # clear() flyttar markören till första raden. Utan detta kunde en
+        # omritning mitt i navigeringen få Delete att ta bort fel spår.
+        rad = table.cursor_row
         table.clear()
-        for i, track in enumerate(self.player.queue):
+        ko = self.player.queue
+        for i, track in enumerate(ko):
             marker = "▶" if i == status.queue_index else str(i + 1)
             style = "bold" if i == status.queue_index else ""
             table.add_row(Text(marker, style=style), Text(str(track), no_wrap=True, style=style))
+        if ko:
+            table.move_cursor(row=min(rad, len(ko) - 1), animate=False)
 
     def on_unmount(self) -> None:
-        self._queue_dirty = True
-        self._flush_queue()
+        self._sync_queue()
         self.player.terminate()

@@ -506,3 +506,54 @@ async def test_hjalprutan_listar_alla_bindningar(store):
         await pilot.press("escape")
         await pilot.pause()
         assert not isinstance(app.screen, HelpScreen)
+
+
+@pytest.mark.asyncio
+async def test_omritning_av_kon_flyttar_inte_markoren(store):
+    """Kötabellen ritas om när kön eller aktuellt spår ändras. Markören får
+    inte hoppa till första raden då – nästa Delete träffade fel spår."""
+    player = FakePlayer()
+    app = make_app(store, player)
+    async with app.run_test(size=(120, 32)) as pilot:
+        for track in TRACKS:
+            player.enqueue(track)
+        app._refresh_queue()
+        ko_tabell = app.query_one("#queue", DataTable)
+        ko_tabell.focus()
+        ko_tabell.move_cursor(row=2)
+        await pilot.pause()
+
+        player.next()                 # nytt aktuellt spår → omritning
+        app._sync_queue()
+        await pilot.pause()
+        assert ko_tabell.cursor_row == 2
+
+
+@pytest.mark.asyncio
+async def test_blandad_ordning_sparas_aven_nar_mpv_ar_sen(store):
+    """Blandningen sker i mpv-tråden, efter knapptrycket. Den gamla
+    smutsflaggan hann spara den oblandade ordningen och sparade sedan aldrig
+    om. Nu styr Player.queue_version när kön skrivs till disk."""
+
+    class LangsamPlayer(FakePlayer):
+        def shuffle(self):
+            self.shuffled = True
+            self.pending = list(reversed(self._queue))   # mpv inte klar än
+
+    player = LangsamPlayer()
+    app = make_app(store, player)
+    async with app.run_test(size=(120, 32)) as pilot:
+        for track in TRACKS:
+            player.enqueue(track)
+        player.play_index(0)
+        app._sync_queue()
+        assert store.load_queue()[0] == TRACKS
+
+        app.action_shuffle()
+        app._sync_queue()                      # tick innan mpv blandat klart
+        player._queue = player.pending         # mpv-tråden blir klar
+        app._sync_queue()
+        await pilot.pause()
+
+        sparad, _ = store.load_queue()
+        assert sparad == list(reversed(TRACKS))
