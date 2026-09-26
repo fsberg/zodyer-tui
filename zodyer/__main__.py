@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from pathlib import Path
 
 from .app import ZodyerApp
 from .library import config_dir
+from .locate import find_mpv
 from .player import Player
 from .source import AuthConfigError, YTMusicSource
 
@@ -66,15 +68,30 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Kunde inte initiera YouTube Music: {exc}", file=sys.stderr)
         return 1
 
+    mpv_path = args.mpv
+    if not mpv_path:
+        found = find_mpv()
+        if not found:
+            print("mpv hittades varken i PATH eller på de vanliga platserna.", file=sys.stderr)
+            print("Installera:  winget install --id shinchiro.mpv --exact", file=sys.stderr)
+            print('eller ange:  --mpv "C:\\sökväg\\mpv.exe"', file=sys.stderr)
+            return 1
+        mpv_path = str(found)
+
+    # mpv:s ytdl-hook anropar yt-dlp själv och tar ingen sökväg från oss.
+    # Utan den startar allt, men varje låt misslyckas tyst.
+    if not shutil.which("yt-dlp"):
+        print("yt-dlp hittades inte i PATH.", file=sys.stderr)
+        print("Installera:  winget install --id yt-dlp.yt-dlp --exact", file=sys.stderr)
+        print("och öppna sedan ett nytt terminalfönster.", file=sys.stderr)
+        return 1
+
     try:
-        player = Player(mpv_location=args.mpv, volume=args.volume)
+        player = Player(mpv_location=mpv_path, volume=args.volume)
     except Exception as exc:
         print(f"Kunde inte starta mpv: {exc}", file=sys.stderr)
-        if args.mpv:
-            print(f"Sökväg som användes: {args.mpv}", file=sys.stderr)
-            print("Kontrollera att filen går att köra.", file=sys.stderr)
-        else:
-            print("Kontrollera att mpv finns i PATH, eller ange --mpv.", file=sys.stderr)
+        print(f"Sökväg som användes: {mpv_path}", file=sys.stderr)
+        print("Kontrollera att filen går att köra.", file=sys.stderr)
         return 1
 
     try:

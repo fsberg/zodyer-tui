@@ -49,20 +49,16 @@ WINGET_HINTS = {
     "yt-dlp": "winget install --id yt-dlp.yt-dlp --exact",
 }
 
-#: shinchiro.mpv är ett vanligt installationsprogram och lägger sig i
-#: Program Files UTAN att hamna i PATH. Leta där innan vi ger upp.
-MPV_KNOWN_PATHS = (
-    r"C:\Program Files\MPV Player\mpv.exe",
-    r"C:\Program Files\mpv\mpv.exe",
-    r"C:\Program Files (x86)\MPV Player\mpv.exe",
-    r"C:\Program Files (x86)\mpv\mpv.exe",
-)
-MPV_SEARCH_ROOTS = (
-    r"C:\Program Files",
-    r"C:\Program Files (x86)",
-    "%LOCALAPPDATA%\\Programs",
-    "%LOCALAPPDATA%\\Microsoft\\WinGet\\Packages",
-)
+# Sökningen efter mpv delas med paketet, som behöver den när zodyer startas
+# utan start.py (pipx). zodyer.locate använder bara standardbiblioteket.
+# Saknas paketet säger check_layout ifrån – därför ingen krasch här.
+try:
+    from zodyer.locate import MPV_KNOWN_PATHS, MPV_SEARCH_ROOTS
+    from zodyer.locate import find_mpv as _locate_mpv
+except ImportError:  # pragma: no cover
+    MPV_KNOWN_PATHS: tuple[str, ...] = ()
+    MPV_SEARCH_ROOTS: tuple[str, ...] = ()
+    _locate_mpv = None
 
 
 # ---------- utskrift ----------
@@ -239,27 +235,11 @@ def find_mpv(explicit: str | None) -> Path | None:
     if saved and Path(saved).is_file():
         return Path(saved)
 
-    # Ingen plattformskontroll: sökvägarna nedan existerar helt enkelt inte
-    # på annat än Windows, och att kunna köra funktionen överallt gör den
-    # testbar utan att låtsas vara ett annat operativsystem.
-    for candidate in MPV_KNOWN_PATHS:
-        path = Path(candidate)
-        if path.is_file():
-            return _remember_mpv(path)
-
+    if _locate_mpv is None:
+        return None
     say("Söker efter mpv.exe…")
-    for root in MPV_SEARCH_ROOTS:
-        base = Path(os.path.expandvars(root))
-        if not base.is_dir():
-            continue
-        try:
-            for path in base.glob("*/mpv.exe"):
-                return _remember_mpv(path)
-            for path in base.glob("*/*/mpv.exe"):
-                return _remember_mpv(path)
-        except OSError:
-            continue
-    return None
+    path = _locate_mpv(MPV_KNOWN_PATHS, MPV_SEARCH_ROOTS)
+    return _remember_mpv(path) if path else None
 
 
 def _remember_mpv(path: Path) -> Path:

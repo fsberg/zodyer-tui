@@ -42,10 +42,19 @@ def _footer_text(app) -> str:
     return lines[-1] if lines else ""
 
 
-async def footer_line(pilot, app) -> str:
+async def footer_line(pilot, app, *expect: str) -> str:
     """Sista raden när footern väl är ritad. Före det är sista icke-tomma
-    raden panelernas underkant – och testet mätte fel sak."""
-    await wait_until(pilot, lambda: not _footer_text(app).lstrip().startswith("╰"))
+    raden panelernas underkant – och testet mätte fel sak.
+
+    Med ``expect`` väntar vi också tills de orden syns: efter ett fokusbyte
+    kan footern hinna ritas en gång innan bindningarna för det nya fokuset
+    är på plats. Syns de aldrig faller testet ändå när tiden gått ut.
+    """
+    def klar() -> bool:
+        text = _footer_text(app)
+        return not text.lstrip().startswith("╰") and all(e in text for e in expect)
+
+    await wait_until(pilot, klar)
     return _footer_text(app)
 
 
@@ -63,7 +72,7 @@ async def test_avsluta_syns_i_footern(width):
         # men gör att footern måste mätas med listan fokuserad.
         app.query_one("#results", DataTable).focus()
         await pilot.pause()
-        footer = await footer_line(pilot, app)
+        footer = await footer_line(pilot, app, "Avsluta", "Hjälp")
         assert "Avsluta" in footer, f"vid {width} kol: {footer!r}"
         # "/ Sök" är dold sedan hjälprutan tog över discovery-rollen.
         assert "Hjälp" in footer
@@ -344,7 +353,7 @@ async def test_ctrl_c_och_ctrl_s_syns_i_footern():
         await pilot.pause()
         app.query_one("#results", DataTable).focus()
         await pilot.pause()
-        footer = await footer_line(pilot, app)
+        footer = await footer_line(pilot, app, "Rensa", "Avsluta", "Spara", "Listor")
         for tecken in ("Rensa", "Avsluta", "Spara", "Listor"):
             assert tecken in footer, f"{tecken} saknas: {footer!r}"
 
@@ -448,7 +457,7 @@ async def test_kritiska_bindningar_kapas_aldrig(width):
         app.query_one("#results", DataTable).focus()
         await asyncio.sleep(0.6)
         await pilot.pause()
-        footer = await footer_line(pilot, app)
+        footer = await footer_line(pilot, app, "Rensa", "Avsluta", "Spara", "Hjälp")
         for text in ("Rensa", "Avsluta", "Spara", "Hjälp"):
             assert text in footer, f"{text} kapad vid {width} kol: {footer!r}"
 
