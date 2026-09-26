@@ -92,6 +92,7 @@ class FakePlayer:
         return self.repeat
 
     def restore(self, tracks, index=-1):
+        self.restore_calls = getattr(self, "restore_calls", 0) + 1
         self._queue = list(tracks)
         self.index = -1          # återställd kö spelar inte av sig själv
 
@@ -329,6 +330,25 @@ async def test_slash_fokuserar_sok():
         await pilot.press("slash")
         await pilot.pause()
         assert app.query_one("#search", Input).has_focus
+
+
+@pytest.mark.asyncio
+async def test_sokfokus_rör_inte_kon():
+    """/ och Ctrl+F återställde tidigare den sparade kön ovanpå den som spelade."""
+    store = temp_store()
+    store.save_queue(TRACKS[:2], 0)
+    player = FakePlayer()
+    app = make_app(player=player, store=store)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert player.restore_calls == 1          # vid start, som det ska
+        player.play_now(TRACKS[2])
+        app.query_one("#results", DataTable).focus()
+        await pilot.press("slash")
+        await pilot.press("ctrl+f")
+        await pilot.pause()
+        assert player.restore_calls == 1
+        assert player.queue == [TRACKS[2]]
 
 
 @pytest.mark.asyncio

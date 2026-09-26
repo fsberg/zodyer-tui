@@ -465,8 +465,6 @@ class ZodyerApp(App):
 
     def action_focus_search(self) -> None:
         self.query_one("#search", Input).focus()
-        # Sist i on_mount: kötabellen måste ha sina kolumner först.
-        self._restore_queue()
 
     # ---- Löpande uppdatering ----
 
