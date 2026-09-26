@@ -24,8 +24,7 @@ pipx install git+https://github.com/fsberg/zodyer-tui.git
 zodyer
 ```
 
-Uppdatera med `pipx upgrade zodyer`. Repot är privat: du behöver vara
-inbjuden och kommer att få logga in på GitHub första gången.
+Uppdatera med `pipx upgrade zodyer`.
 
 Resten av det här dokumentet gäller dig som har koden utcheckad och vill
 köra eller utveckla från mappen.
