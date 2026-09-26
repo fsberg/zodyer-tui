@@ -64,20 +64,17 @@ class ZodyerApp(App):
     CSS_PATH = "app.tcss"
     TITLE = "Zodyer"
 
-    # Footern trunkerar tyst när bindningarna inte får plats. Vid 80 kolumner
-    # ryms ~7 stycken – resten döljs medvetet i stället för att slumpen ska
-    # avgöra vilken som kapas (q Avsluta försvann tidigare).
+    # Footern rymmer omkring sju poster och trunkerar tyst resten – förr
+    # försvann "q Avsluta" vid 80 kolumner. Bara det mest använda är
+    # show=True; hela listan finns bakom "?".
+    #
     # Textual skiljer inte på gemener och versaler i tangentnamn: "S" och
     # "s" är samma bindning och den först definierade vinner. Därför ligger
-    # spara på Ctrl+S och inte på S. test_inga_skiftlagskollisioner vaktar det.
+    # spara på Ctrl+S. test_inga_skiftlagskollisioner vaktar det. Enskilda
+    # bokstäver används bara till ofarliga åtgärder.
     #
     # Ctrl+C blir en tangenthändelse, inte SIGINT: Textual kör terminalen i
     # raw mode. Ctrl+Q är Textuals egen avslutsbindning med priority=True.
-    # Textual skiljer inte på gemener och versaler: "S" och "s" är samma
-    # bindning. Enskilda bokstäver används bara till ofarliga åtgärder.
-    #
-    # Footern rymmer omkring sju poster och trunkerar tyst resten. Bara det
-    # mest använda är show=True; hela listan finns bakom "?".
     BINDINGS = [
         Binding("ctrl+c", "stop", "Rensa", priority=True),
         Binding("ctrl+q", "quit", "Avsluta", priority=True),

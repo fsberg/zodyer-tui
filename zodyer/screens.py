@@ -64,16 +64,17 @@ class LibraryScreen(ModalScreen[tuple[str, str] | None]):
     def __init__(self, store: PlaylistStore) -> None:
         super().__init__()
         self.store = store
-        self.message = ""
+        #: Listan som väntar på ett andra d. Radering går inte att ångra,
+        #: så ett ensamt tryck – kanske en felträff från a – räcker inte.
+        self._bekrafta: str | None = None
+
+    HINT = "Enter laddar  ·  a lägger i kön  ·  d tar bort  ·  Escape stänger"
 
     def compose(self):
         with Vertical(id="dialog"):
             yield Label("Sparade spellistor", id="dialog-title")
             yield DataTable(id="playlists", cursor_type="row")
-            yield Label(
-                "Enter laddar  ·  a lägger i kön  ·  d tar bort  ·  Escape stänger",
-                id="dialog-hint",
-            )
+            yield Label(self.HINT, id="dialog-hint")
 
     def on_mount(self) -> None:
         tabell = self.query_one("#playlists", DataTable)
@@ -122,8 +123,21 @@ class LibraryScreen(ModalScreen[tuple[str, str] | None]):
         namn = self._valt()
         if not namn:
             return
+        hint = self.query_one("#dialog-hint", Label)
+        if self._bekrafta != namn:
+            self._bekrafta = namn
+            hint.update(f"Ta bort \"{namn}\"? Tryck d igen för att bekräfta.")
+            return
+        self._bekrafta = None
         self.store.delete(namn)
+        hint.update(self.HINT)
         self._fyll()
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        # Flyttar man markören gäller inte längre frågan om förra listan.
+        if self._bekrafta and self._bekrafta != self._valt():
+            self._bekrafta = None
+            self.query_one("#dialog-hint", Label).update(self.HINT)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         self.action_ladda()

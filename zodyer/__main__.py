@@ -8,16 +8,9 @@ import sys
 from pathlib import Path
 
 from .app import ZodyerApp
+from .library import config_dir
 from .player import Player
 from .source import AuthConfigError, YTMusicSource
-
-
-def default_auth_dir() -> Path:
-    """Auth-filer hör hemma utanför projektmappen – de innehåller credentials."""
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CONFIG_HOME")
-    if base:
-        return Path(base) / "zodyer"
-    return Path.home() / ".config" / "zodyer"
 
 
 def warn_if_auth_in_repo(path: Path) -> str | None:
@@ -31,7 +24,7 @@ def warn_if_auth_in_repo(path: Path) -> str | None:
             return (
                 f"Varning: {resolved} ligger i ett git-arbetsträd ({parent}). "
                 "Filen innehåller en giltig Google-session. Flytta den till "
-                f"{default_auth_dir()} eller lägg den i .gitignore."
+                f"{config_dir()} eller lägg den i .gitignore."
             )
     return None
 

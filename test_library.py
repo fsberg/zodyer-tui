@@ -268,7 +268,27 @@ async def test_d_tar_bort_i_biblioteket(store):
         await pilot.pause()
         await pilot.press("d")
         await pilot.pause()
+        assert store.names() == ["Bort"], "ett ensamt d ska bara fråga"
+        await pilot.press("d")
+        await pilot.pause()
         assert store.names() == []
+
+
+@pytest.mark.asyncio
+async def test_d_fragan_glomms_nar_markoren_flyttas(store):
+    store.save("Första", TRACKS[:1])
+    store.save("Andra", TRACKS[:2])
+    app = make_app(store)
+    async with app.run_test(size=(120, 32)) as pilot:
+        await pilot.pause()
+        app.query_one("#results", DataTable).focus()
+        await pilot.press("l")
+        await pilot.pause()
+        await pilot.press("d")        # fråga om översta
+        await pilot.press("down")
+        await pilot.press("d")        # ny fråga, inte bekräftelse
+        await pilot.pause()
+        assert sorted(store.names()) == ["Andra", "Första"]
 
 
 @pytest.mark.asyncio

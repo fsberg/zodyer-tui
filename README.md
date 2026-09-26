@@ -229,7 +229,7 @@ Kön sparas som en lokal JSON-fil i `%LOCALAPPDATA%\zodyer\playlists.json`
 | `l` | Öppna biblioteket |
 | `Enter` i biblioteket | Ladda listan (ersätter kön) |
 | `a` i biblioteket | Lägg listan sist i kön |
-| `d` i biblioteket | Ta bort listan |
+| `d` i biblioteket | Ta bort listan (tryck `d` igen för att bekräfta) |
 
 Modaler i stället för en fjärde panel: layouten är redan full, och en
 permanent panel hade tryckt ihop resultatlistan på ett 80 kolumner brett
