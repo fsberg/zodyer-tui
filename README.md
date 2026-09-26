@@ -425,3 +425,7 @@ Regressionstester finns i `tests/test_eq.py`.
   Venv-sökvägar (`Scripts\python.exe`) och `winget`-anropen är därmed
   oprövade i praktiken.
 - `start.cmd` är inte kört alls.
+
+## Licens
+
+MIT – se [LICENSE](LICENSE).
