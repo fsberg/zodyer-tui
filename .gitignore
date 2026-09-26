@@ -1,0 +1,4 @@
+*.json
+!package.json
+.venv/
+__pycache__/

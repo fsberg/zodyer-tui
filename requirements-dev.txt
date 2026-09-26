@@ -1,0 +1,6 @@
+# Bara för att köra testsviten. Installeras INTE av start.py – testberoenden
+# hör inte hemma i en normal körning.
+#   pip install -r requirements-dev.txt
+-r requirements.txt
+pytest>=8,<9
+pytest-asyncio>=0.24

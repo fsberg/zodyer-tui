@@ -1,0 +1,5 @@
+# Pinnade mot de versioner koden faktiskt verifierats mot. Textual har
+# brytande ändringar mellan major-versioner.
+textual>=8.2,<9
+ytmusicapi>=1.12,<2
+python-mpv-jsonipc>=1.4,<2

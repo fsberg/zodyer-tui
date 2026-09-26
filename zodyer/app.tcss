@@ -1,0 +1,148 @@
+/* Palett hämtad ur referensbilden:
+   bakgrund #021414, aktiv cyan #31e2f1, topp #ffffff,
+   inaktiv #03556b, dämpad #013334, spegling #022929 */
+
+Screen {
+    layers: base;
+    background: #021414;
+    color: #9fdbe4;
+}
+
+Header {
+    background: #012a30;
+    color: #31e2f1;
+    text-style: bold;
+}
+
+Footer {
+    background: #012a30;
+    color: #6fb9c6;
+}
+
+Footer > .footer-key--key {
+    background: #012a30;
+    color: #31e2f1;
+    text-style: bold;
+}
+
+Footer > .footer-key--description {
+    background: #012a30;
+    color: #6fb9c6;
+}
+
+#search {
+    dock: top;
+    margin: 0 1;
+    background: #03212a;
+    color: #d8f7fb;
+    border: tall #03556b;
+}
+
+#search:focus {
+    border: tall #31e2f1;
+}
+
+#panes {
+    height: 1fr;
+}
+
+#results {
+    width: 2fr;
+    border: round #03556b;
+    border-title-color: #31e2f1;
+    border-title-style: bold;
+    background: #021414;
+    margin: 0 1 0 1;
+}
+
+#results:focus {
+    border: round #31e2f1;
+}
+
+#queue {
+    width: 1fr;
+    border: round #03556b;
+    border-title-color: #31e2f1;
+    border-title-style: bold;
+    background: #021414;
+    margin: 0 1 0 0;
+}
+
+#queue:focus {
+    border: round #31e2f1;
+}
+
+DataTable > .datatable--header {
+    background: #012a30;
+    color: #6fb9c6;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: #03556b;
+    color: #ffffff;
+}
+
+DataTable > .datatable--hover {
+    background: #03303c;
+}
+
+/* INTE dock: bottom. Två dockade widgetar i botten reserverar inte plats
+   för varandra i Textual 8 – statusraden ritades ovanpå EQ:ns tre nedersta
+   rader. EQ:n ligger därför i normalt flöde efter #panes. */
+#eq {
+    height: 7;
+    padding: 0 2;
+    background: #021414;
+    color: #31e2f1;
+}
+
+#now {
+    dock: bottom;
+    height: 3;
+    padding: 0 2;
+    background: #012a30;
+    color: #d8f7fb;
+}
+
+/* Modaler för spellistor */
+#dialog {
+    width: 60;
+    height: auto;
+    max-height: 80%;
+    padding: 1 2;
+    background: #012a30;
+    border: round #31e2f1;
+}
+
+#dialog-title {
+    color: #31e2f1;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#dialog-hint {
+    color: #6fb9c6;
+    margin-top: 1;
+}
+
+#playlists {
+    height: auto;
+    max-height: 16;
+    background: #021414;
+}
+
+#playlist-name {
+    background: #03212a;
+    color: #d8f7fb;
+    border: tall #03556b;
+}
+
+#playlist-name:focus {
+    border: tall #31e2f1;
+}
+
+SaveScreen, LibraryScreen {
+    align: center middle;
+    background: #021414 70%;
+}
