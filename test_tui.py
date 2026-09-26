@@ -175,6 +175,24 @@ def make_app(source=None, player=None, store=None):
                      store or temp_store())
 
 
+async def wait_until(pilot, predicate, timeout=3.0) -> bool:
+    """Vänta tills Textual hunnit rita. En enda pilot.pause() räcker inte
+    alltid – kolumner byggs i call_after_refresh och footern fylls efter
+    fokusbyte, och på en långsam maskin kom skärmdumpen före."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while loop.time() < deadline:
+        await pilot.pause()
+        if predicate():
+            return True
+        await asyncio.sleep(0.02)
+    return predicate()
+
+
+def result_headers(app) -> list[str]:
+    return [str(c.label) for c in app.query_one("#results", DataTable).columns.values()]
+
+
 async def do_search(pilot, app, query="test"):
     app.query_one("#search", Input).value = query
     await pilot.press("enter")
@@ -192,10 +210,9 @@ async def do_search(pilot, app, query="test"):
 async def test_startar_och_bygger_kolumner():
     app = make_app()
     async with app.run_test(size=(140, 30)) as pilot:
-        await pilot.pause()
-        results = app.query_one("#results", DataTable)
+        await wait_until(pilot, lambda: result_headers(app))
         queue = app.query_one("#queue", DataTable)
-        assert [str(c.label) for c in results.columns.values()] == [
+        assert result_headers(app) == [
             "Titel", "Artist", "Album", "År", "Längd",
         ]
         assert [str(c.label) for c in queue.columns.values()] == ["#", "Spår"]

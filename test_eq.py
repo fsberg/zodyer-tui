@@ -17,7 +17,8 @@ import re
 import pytest
 from textual.widgets import DataTable, Footer, Input
 
-from test_tui import TRACKS, FakePlayer, FakeSource, do_search, temp_store
+from test_tui import (TRACKS, FakePlayer, FakeSource, do_search, result_headers,
+                      temp_store, wait_until)
 from zodyer.app import ZodyerApp
 from zodyer.eq import BAR_ACTIVE, BAR_IDLE, BAR_PEAK, REFLECTION, Equalizer, LevelSource
 
@@ -36,6 +37,18 @@ def screenshot_lines(app) -> list[str]:
     ]
 
 
+def _footer_text(app) -> str:
+    lines = [line for line in screenshot_lines(app) if line.strip()]
+    return lines[-1] if lines else ""
+
+
+async def footer_line(pilot, app) -> str:
+    """Sista raden när footern väl är ritad. Före det är sista icke-tomma
+    raden panelernas underkant – och testet mätte fel sak."""
+    await wait_until(pilot, lambda: not _footer_text(app).lstrip().startswith("╰"))
+    return _footer_text(app)
+
+
 # ---------- 1. Footern ----------
 
 
@@ -50,7 +63,7 @@ async def test_avsluta_syns_i_footern(width):
         # men gör att footern måste mätas med listan fokuserad.
         app.query_one("#results", DataTable).focus()
         await pilot.pause()
-        footer = [line for line in screenshot_lines(app) if line.strip()][-1]
+        footer = await footer_line(pilot, app)
         assert "Avsluta" in footer, f"vid {width} kol: {footer!r}"
         # "/ Sök" är dold sedan hjälprutan tog över discovery-rollen.
         assert "Hjälp" in footer
@@ -189,7 +202,7 @@ async def test_footern_ar_avskalad_medan_sokfaltet_har_fokus():
     async with app.run_test(size=(100, 26)) as pilot:
         await pilot.pause()
         assert app.query_one("#search", Input).has_focus
-        footer = [line for line in screenshot_lines(app) if line.strip()][-1]
+        footer = await footer_line(pilot, app)
         assert "Paus" not in footer
 
 
@@ -215,9 +228,8 @@ async def test_kolumnerna_ryms_utan_horisontell_scroll(width):
 async def test_alla_kolumner_visas_i_brett_fonster():
     app = make_app()
     async with app.run_test(size=(140, 30)) as pilot:
-        await pilot.pause()
-        rubriker = [str(c.label) for c in
-                    app.query_one("#results", DataTable).columns.values()]
+        await wait_until(pilot, lambda: result_headers(app))
+        rubriker = result_headers(app)
         assert rubriker == ["Titel", "Artist", "Album", "År", "Längd"]
 
 
@@ -225,9 +237,8 @@ async def test_alla_kolumner_visas_i_brett_fonster():
 async def test_kolumner_offras_i_prioritetsordning_nar_det_blir_trangt():
     app = make_app()
     async with app.run_test(size=(80, 30)) as pilot:
-        await pilot.pause()
-        rubriker = [str(c.label) for c in
-                    app.query_one("#results", DataTable).columns.values()]
+        await wait_until(pilot, lambda: result_headers(app))
+        rubriker = result_headers(app)
         assert "Titel" in rubriker and "Artist" in rubriker
         assert "År" not in rubriker, "År är minst värdefull och ska offras först"
 
@@ -333,7 +344,7 @@ async def test_ctrl_c_och_ctrl_s_syns_i_footern():
         await pilot.pause()
         app.query_one("#results", DataTable).focus()
         await pilot.pause()
-        footer = [line for line in screenshot_lines(app) if line.strip()][-1]
+        footer = await footer_line(pilot, app)
         for tecken in ("Rensa", "Avsluta", "Spara", "Listor"):
             assert tecken in footer, f"{tecken} saknas: {footer!r}"
 
@@ -437,7 +448,7 @@ async def test_kritiska_bindningar_kapas_aldrig(width):
         app.query_one("#results", DataTable).focus()
         await asyncio.sleep(0.6)
         await pilot.pause()
-        footer = [line for line in screenshot_lines(app) if line.strip()][-1]
+        footer = await footer_line(pilot, app)
         for text in ("Rensa", "Avsluta", "Spara", "Hjälp"):
             assert text in footer, f"{text} kapad vid {width} kol: {footer!r}"
 
